@@ -1,0 +1,11 @@
+{
+  "name": "AI Focus Timer",
+  "description": "AI-powered verified focus tracker & study timer with webcam computer vision detection, computer activity awareness, and smart coaching.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
