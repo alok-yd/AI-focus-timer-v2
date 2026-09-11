@@ -26,7 +26,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
   onComplete
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stepIndex, setStepIndex] = useState(0); // 0 to 7 (for steps 1 to 8)
+  const [stepIndex, setStepIndex] = useState(0); // 0 to 10 (for steps 1 to 11)
   const [visionLive, setVisionLive] = useState<VisionData | null>(null);
   const [countdown, setCountdown] = useState(15);
   const [isDone, setIsDone] = useState(false);
@@ -84,7 +84,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
       calibrationEngine.setStep(nextIdx + 1);
       setCountdown(CALIBRATION_STEPS[nextIdx].durationSeconds);
     } else {
-      // Completed all 8 steps
+      // Completed all 11 steps
       calibrationEngine.finalizeCalibration();
       setIsDone(true);
       onComplete?.();
@@ -145,10 +145,15 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
 
             {/* Current Step Guidance Card */}
             <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-1">
-              <h3 className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-                {currentStepInfo.title}
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                  {currentStepInfo.title}
+                </h3>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/20 text-indigo-300">
+                  Step {currentStepInfo.step} of {CALIBRATION_STEPS.length}
+                </span>
+              </div>
               <p className="text-xs text-zinc-300 leading-relaxed">
                 {currentStepInfo.instructions}
               </p>

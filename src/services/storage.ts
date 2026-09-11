@@ -228,8 +228,12 @@ export class StorageService {
     let screenFocusedSeconds = 0;
     let paperFocusedSeconds = 0;
     let mixedFocusedSeconds = 0;
+    let thinkingSeconds = 0;
     let uncertainSeconds = 0;
     let distractedSeconds = 0;
+    let phoneDistractedSeconds = 0;
+    let conversationSeconds = 0;
+    let possibleSleepSeconds = 0;
     let awaySeconds = 0;
     let breakSeconds = 0;
     let unverifiedSeconds = 0;
@@ -240,8 +244,12 @@ export class StorageService {
       screenFocusedSeconds += session.screenFocusedSeconds || Math.round(session.focusedSeconds * 0.6);
       paperFocusedSeconds += session.paperFocusedSeconds || Math.round(session.focusedSeconds * 0.4);
       mixedFocusedSeconds += session.mixedFocusedSeconds || 0;
+      thinkingSeconds += session.thinkingSeconds || 0;
       uncertainSeconds += session.uncertainSeconds || 0;
       distractedSeconds += session.distractedSeconds;
+      phoneDistractedSeconds += session.phoneDistractedSeconds || 0;
+      conversationSeconds += session.conversationSeconds || 0;
+      possibleSleepSeconds += session.possibleSleepSeconds || 0;
       awaySeconds += session.awaySeconds;
       breakSeconds += session.breakSeconds;
       unverifiedSeconds += session.unverifiedSeconds || 0;
@@ -262,8 +270,12 @@ export class StorageService {
       screenFocusedSeconds,
       paperFocusedSeconds,
       mixedFocusedSeconds,
+      thinkingSeconds,
       uncertainSeconds,
       distractedSeconds,
+      phoneDistractedSeconds,
+      conversationSeconds,
+      possibleSleepSeconds,
       awaySeconds,
       breakSeconds,
       unverifiedSeconds,

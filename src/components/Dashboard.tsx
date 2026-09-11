@@ -151,7 +151,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     };
   }, []);
 
-  // Visual state styling with SCREEN, PAPER, and MIXED focus distinctions
+  // Visual state styling with SCREEN, PAPER, MIXED, THINKING, and threat distinctions
   const getStateVisuals = () => {
     switch (tickData.state) {
       case 'FOCUSED_SCREEN':
@@ -182,6 +182,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
           bg: 'bg-indigo-500/15 border-indigo-500/40',
           dot: 'bg-indigo-400 animate-pulse'
         };
+      case 'THINKING':
+        return {
+          title: 'THINKING / CONTEMPLATION',
+          subtitle: tickData.stateExplanation || 'Mental calculation or quiet reflection at desk (100% verified focus)',
+          tooltip: 'Thinking pause verified: Natural contemplation period while solving complex problems.',
+          color: 'text-cyan-400',
+          bg: 'bg-cyan-500/15 border-cyan-500/40',
+          dot: 'bg-cyan-400 animate-pulse'
+        };
       case 'UNCERTAIN':
       case 'WARNING':
         return {
@@ -191,6 +200,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
           color: 'text-amber-400',
           bg: 'bg-amber-500/10 border-amber-500/30',
           dot: 'bg-amber-400 animate-ping'
+        };
+      case 'PHONE_USE':
+        return {
+          title: 'SMARTPHONE DISTRACTION',
+          subtitle: engineOutput.distractionReason || 'Persistent smartphone interaction detected',
+          tooltip: 'Smartphone usage confirmed. Put phone away to automatically resume.',
+          color: 'text-rose-400',
+          bg: 'bg-rose-500/15 border-rose-500/40',
+          dot: 'bg-rose-400'
+        };
+      case 'CONVERSATION':
+        return {
+          title: 'CONVERSATION',
+          subtitle: engineOutput.distractionReason || 'Verbal interaction with second person detected',
+          tooltip: 'Active conversation detected. Return to study to resume timer.',
+          color: 'text-amber-400',
+          bg: 'bg-amber-500/15 border-amber-500/40',
+          dot: 'bg-amber-400'
+        };
+      case 'POSSIBLE_SLEEP':
+        return {
+          title: 'REST / SLEEP',
+          subtitle: engineOutput.distractionReason || 'Stationary posture with closed eyes detected',
+          tooltip: 'Extended rest or sleep posture observed. Stretch or take a break.',
+          color: 'text-violet-400',
+          bg: 'bg-violet-500/15 border-violet-500/40',
+          dot: 'bg-violet-400'
         };
       case 'PAUSED':
       case 'DISTRACTED':
@@ -405,13 +441,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-emerald-400 font-bold">{tickData.state}</span>
             </div>
             <div>
+              <span className="text-zinc-500 block">Primary Activity:</span>
+              <span className="text-indigo-400 font-bold uppercase tracking-wider">
+                {telemetry.primaryActivity || engineOutput.activity || 'STUDYING'}
+              </span>
+            </div>
+            <div>
               <span className="text-zinc-500 block">Confidence / Raw:</span>
               <span className="text-zinc-200">{engineOutput.score} / {engineOutput.rawScore}</span>
             </div>
             <div>
-              <span className="text-zinc-500 block">Face Present:</span>
-              <span className={engineOutput.facePresent ? 'text-emerald-400' : 'text-rose-400'}>
-                {String(engineOutput.facePresent)} {telemetry.faceCount && telemetry.faceCount > 1 ? `(${telemetry.faceCount} faces)` : ''}
+              <span className="text-zinc-500 block">Face Visibility:</span>
+              <span className={`font-semibold ${
+                engineOutput.faceVisibility === 'HIGH' ? 'text-emerald-400' :
+                engineOutput.faceVisibility === 'MED' ? 'text-amber-400' : 'text-rose-400'
+              }`}>
+                {engineOutput.faceVisibility || 'HIGH'} {telemetry.faceCount && telemetry.faceCount > 1 ? `(${telemetry.faceCount} faces)` : ''}
               </span>
             </div>
             <div>
@@ -433,14 +478,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </div>
             <div>
+              <span className="text-zinc-500 block">In Study Zone:</span>
+              <span className={telemetry.inStudyZone !== false ? 'text-emerald-400' : 'text-amber-400'}>
+                {telemetry.inStudyZone !== false ? 'Yes (Desk Bound)' : 'Outside Bounds'}
+              </span>
+            </div>
+            <div>
               <span className="text-zinc-500 block">Posture Stable:</span>
               <span className={telemetry.bodyPostureStable ? 'text-emerald-400' : 'text-amber-400'}>
                 {String(telemetry.bodyPostureStable)}
               </span>
             </div>
             <div>
-              <span className="text-zinc-500 block">Gaze Score:</span>
-              <span className="text-zinc-200">{Math.round(telemetry.gazeScore * 100)}%</span>
+              <span className="text-zinc-500 block">Phone Risk:</span>
+              <span className={(telemetry.phoneConfidence || 0) > 0.4 ? 'text-rose-400 font-bold' : 'text-zinc-400'}>
+                {Math.round((telemetry.phoneConfidence || 0) * 100)}%
+              </span>
+            </div>
+            <div>
+              <span className="text-zinc-500 block">Conversation Risk:</span>
+              <span className={(telemetry.conversationConfidence || 0) > 0.4 ? 'text-rose-400 font-bold' : 'text-zinc-400'}>
+                {Math.round((telemetry.conversationConfidence || 0) * 100)}%
+              </span>
+            </div>
+            <div>
+              <span className="text-zinc-500 block">Sleep Risk:</span>
+              <span className={(telemetry.sleepConfidence || 0) > 0.4 ? 'text-rose-400 font-bold' : 'text-zinc-400'}>
+                {Math.round((telemetry.sleepConfidence || 0) * 100)}%
+              </span>
             </div>
             <div>
               <span className="text-zinc-500 block">Keyboard / Mouse:</span>
@@ -463,6 +528,103 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-indigo-400 font-semibold">{telemetry.studyMedium}</span>
             </div>
           </div>
+
+          {/* Explainable State Decision Banner */}
+          {engineOutput.stateExplanation && (
+            <div className="bg-zinc-900/90 border border-zinc-800 p-2.5 rounded-xl flex items-center justify-between text-[11px]">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
+                  Reason
+                </span>
+                <span className="text-zinc-200">{engineOutput.stateExplanation}</span>
+              </div>
+              {engineOutput.isGracePeriodActive && (
+                <span className="text-amber-400 text-[10px] font-semibold animate-pulse">
+                  Grace Period ({engineOutput.graceSecondsRemaining}s)
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Focus Confidence Vector Gauges */}
+          {engineOutput.confidenceVector && (
+            <div className="border-t border-zinc-800/80 pt-2 space-y-2">
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block">
+                Focus Confidence Vector (Probability Distribution)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-[10px]">
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Screen</span>
+                    <span className="text-emerald-400 font-mono">{Math.round(engineOutput.confidenceVector.pScreen * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pScreen * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Paper</span>
+                    <span className="text-teal-400 font-mono">{Math.round(engineOutput.confidenceVector.pPaper * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-teal-400 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pPaper * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Thinking</span>
+                    <span className="text-amber-400 font-mono">{Math.round(engineOutput.confidenceVector.pThinking * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-amber-400 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pThinking * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Phone</span>
+                    <span className="text-rose-400 font-mono">{Math.round(engineOutput.confidenceVector.pPhone * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-rose-500 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pPhone * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Speaking</span>
+                    <span className="text-rose-400 font-mono">{Math.round(engineOutput.confidenceVector.pConversation * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-rose-500 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pConversation * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Sleep</span>
+                    <span className="text-purple-400 font-mono">{Math.round(engineOutput.confidenceVector.pSleep * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-purple-500 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pSleep * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800">
+                  <div className="flex justify-between text-zinc-400 mb-1">
+                    <span>Away</span>
+                    <span className="text-zinc-400 font-mono">{Math.round(engineOutput.confidenceVector.pAway * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-zinc-500 h-full rounded-full" style={{ width: `${Math.round(engineOutput.confidenceVector.pAway * 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* State Transition History Logs */}
           {engineOutput.recentTransitions && engineOutput.recentTransitions.length > 0 && (
@@ -644,6 +806,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-zinc-500">Paper/Desk: </span>
                 <span className="text-teal-300">{formatTimeHoursMins(tickData.paperFocusedSeconds || 0)}</span>
               </div>
+              {tickData.thinkingSeconds > 0 && (
+                <div className="bg-zinc-950/70 px-3 py-1.5 rounded-lg border border-zinc-800">
+                  <span className="text-zinc-500">Thinking: </span>
+                  <span className="text-amber-300">{formatTimeHoursMins(tickData.thinkingSeconds)}</span>
+                </div>
+              )}
               {tickData.mixedFocusedSeconds > 0 && (
                 <div className="bg-zinc-950/70 px-3 py-1.5 rounded-lg border border-zinc-800">
                   <span className="text-zinc-500">Mixed: </span>

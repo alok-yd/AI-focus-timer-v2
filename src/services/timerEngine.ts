@@ -10,10 +10,14 @@ export interface TimerTickData {
   screenFocusedSeconds: number;
   paperFocusedSeconds: number;
   mixedFocusedSeconds: number;
+  thinkingSeconds: number;
   uncertainSeconds: number;
   unverifiedSeconds: number;
   remainingTargetSeconds: number;
   distractedSeconds: number;
+  phoneSeconds: number;
+  conversationSeconds: number;
+  sleepSeconds: number;
   awaySeconds: number;
   breakSeconds: number;
   efficiency: number;
@@ -54,10 +58,14 @@ export class TimerEngine {
   private accumulatedScreenFocusedMs: number = 0;
   private accumulatedPaperFocusedMs: number = 0;
   private accumulatedMixedFocusedMs: number = 0;
+  private accumulatedThinkingMs: number = 0;
   private accumulatedUncertainMs: number = 0;
   private accumulatedUnverifiedMs: number = 0;
   private accumulatedWarningMs: number = 0;
   private accumulatedDistractedMs: number = 0;
+  private accumulatedPhoneMs: number = 0;
+  private accumulatedConversationMs: number = 0;
+  private accumulatedSleepMs: number = 0;
   private accumulatedAwayMs: number = 0;
   private accumulatedBreakMs: number = 0;
   private lastTickTimestamp: number = 0;
@@ -122,10 +130,14 @@ export class TimerEngine {
     this.accumulatedScreenFocusedMs = 0;
     this.accumulatedPaperFocusedMs = 0;
     this.accumulatedMixedFocusedMs = 0;
+    this.accumulatedThinkingMs = 0;
     this.accumulatedUncertainMs = 0;
     this.accumulatedUnverifiedMs = 0;
     this.accumulatedWarningMs = 0;
     this.accumulatedDistractedMs = 0;
+    this.accumulatedPhoneMs = 0;
+    this.accumulatedConversationMs = 0;
+    this.accumulatedSleepMs = 0;
     this.accumulatedAwayMs = 0;
     this.accumulatedBreakMs = 0;
     this.scoresList = [];
@@ -199,9 +211,13 @@ export class TimerEngine {
     const screenFocusedSec = Math.round(this.accumulatedScreenFocusedMs / 1000);
     const paperFocusedSec = Math.round(this.accumulatedPaperFocusedMs / 1000);
     const mixedFocusedSec = Math.round(this.accumulatedMixedFocusedMs / 1000);
+    const thinkingSec = Math.round(this.accumulatedThinkingMs / 1000);
     const uncertainSec = Math.round(this.accumulatedUncertainMs / 1000);
     const unverifiedSec = Math.round(this.accumulatedUnverifiedMs / 1000);
     const distractedSec = Math.round(this.accumulatedDistractedMs / 1000);
+    const phoneSec = Math.round(this.accumulatedPhoneMs / 1000);
+    const convSec = Math.round(this.accumulatedConversationMs / 1000);
+    const sleepSec = Math.round(this.accumulatedSleepMs / 1000);
     const awaySec = Math.round(this.accumulatedAwayMs / 1000);
     const breakSec = Math.round(this.accumulatedBreakMs / 1000);
     const warningSec = Math.round(this.accumulatedWarningMs / 1000);
@@ -225,10 +241,14 @@ export class TimerEngine {
       screenFocusedSeconds: screenFocusedSec,
       paperFocusedSeconds: paperFocusedSec,
       mixedFocusedSeconds: mixedFocusedSec,
+      thinkingSeconds: thinkingSec,
       uncertainSeconds: uncertainSec,
       unverifiedSeconds: unverifiedSec,
       warningSeconds: warningSec,
       distractedSeconds: distractedSec,
+      phoneDistractedSeconds: phoneSec,
+      conversationSeconds: convSec,
+      possibleSleepSeconds: sleepSec,
       awaySeconds: awaySec,
       breakSeconds: breakSec,
       elapsedSeconds: elapsedSec,
@@ -236,7 +256,8 @@ export class TimerEngine {
       peakFocusScore: Math.max(this.peakScore, avgScore),
       distractionCount: this.distractionCount,
       status: focusedSec >= this.targetSeconds ? 'COMPLETED' : 'STOPPED',
-      transitionLogs: this.focusEngine.getTransitionLogs()
+      transitionLogs: this.focusEngine.getTransitionLogs(),
+      activityEvents: this.focusEngine.getActivityEvents()
     };
 
     StorageService.saveSession(completedSession);
@@ -309,6 +330,18 @@ export class TimerEngine {
         this.accumulatedFocusedMs += deltaMs;
         this.accumulatedMixedFocusedMs += deltaMs;
         break;
+      case 'THINKING':
+        // Thinking counts 100% towards verified focus time!
+        this.accumulatedFocusedMs += deltaMs;
+        this.accumulatedThinkingMs += deltaMs;
+        if (this.medium === 'Paper / PYQ Study') {
+          this.accumulatedPaperFocusedMs += deltaMs;
+        } else if (this.medium === 'Mixed Study') {
+          this.accumulatedMixedFocusedMs += deltaMs;
+        } else {
+          this.accumulatedScreenFocusedMs += deltaMs;
+        }
+        break;
       case 'UNCERTAIN':
       case 'WARNING':
         // UNCERTAIN means the system lacks definitive evidence: verified focus continues!
@@ -325,6 +358,18 @@ export class TimerEngine {
       case 'UNVERIFIED':
         // Unverified time recorded truthfully without adding to verified focus
         this.accumulatedUnverifiedMs += deltaMs;
+        break;
+      case 'PHONE_USE':
+        this.accumulatedDistractedMs += deltaMs;
+        this.accumulatedPhoneMs += deltaMs;
+        break;
+      case 'CONVERSATION':
+        this.accumulatedDistractedMs += deltaMs;
+        this.accumulatedConversationMs += deltaMs;
+        break;
+      case 'POSSIBLE_SLEEP':
+        this.accumulatedDistractedMs += deltaMs;
+        this.accumulatedSleepMs += deltaMs;
         break;
       case 'PAUSED':
       case 'DISTRACTED':
@@ -361,7 +406,8 @@ export class TimerEngine {
         headPitch: engineOut.telemetry?.headPitch ?? 0,
         eyeOpen: true,
         activeApp: 'Study Environment',
-        handActivity: engineOut.telemetry?.handActivity
+        handActivity: engineOut.telemetry?.handActivity,
+        activity: engineOut.activity
       };
       this.timelineBuffer.push(evt);
     }
@@ -374,9 +420,13 @@ export class TimerEngine {
     const screenFocusedSec = Math.floor(this.accumulatedScreenFocusedMs / 1000);
     const paperFocusedSec = Math.floor(this.accumulatedPaperFocusedMs / 1000);
     const mixedFocusedSec = Math.floor(this.accumulatedMixedFocusedMs / 1000);
+    const thinkingSec = Math.floor(this.accumulatedThinkingMs / 1000);
     const uncertainSec = Math.floor(this.accumulatedUncertainMs / 1000);
     const unverifiedSec = Math.floor(this.accumulatedUnverifiedMs / 1000);
     const distractedSec = Math.floor(this.accumulatedDistractedMs / 1000);
+    const phoneSec = Math.floor(this.accumulatedPhoneMs / 1000);
+    const convSec = Math.floor(this.accumulatedConversationMs / 1000);
+    const sleepSec = Math.floor(this.accumulatedSleepMs / 1000);
     const awaySec = Math.floor(this.accumulatedAwayMs / 1000);
     const breakSec = Math.floor(this.accumulatedBreakMs / 1000);
 
@@ -401,10 +451,14 @@ export class TimerEngine {
       screenFocusedSeconds: screenFocusedSec,
       paperFocusedSeconds: paperFocusedSec,
       mixedFocusedSeconds: mixedFocusedSec,
+      thinkingSeconds: thinkingSec,
       uncertainSeconds: uncertainSec,
       unverifiedSeconds: unverifiedSec,
       remainingTargetSeconds: remaining,
       distractedSeconds: distractedSec,
+      phoneSeconds: phoneSec,
+      conversationSeconds: convSec,
+      sleepSeconds: sleepSec,
       awaySeconds: awaySec,
       breakSeconds: breakSec,
       efficiency,

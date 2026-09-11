@@ -248,8 +248,11 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
               <div className="text-[11px] text-zinc-400 mt-1 flex flex-wrap gap-2">
                 <span>Screen: <strong className="text-indigo-300 font-mono">{formatTimeHoursMins(todaySummary.screenFocusedSeconds || 0)}</strong></span>
                 <span>Paper: <strong className="text-teal-300 font-mono">{formatTimeHoursMins(todaySummary.paperFocusedSeconds || 0)}</strong></span>
+                {todaySummary.thinkingSeconds ? (
+                  <span>Thinking: <strong className="text-amber-300 font-mono">{formatTimeHoursMins(todaySummary.thinkingSeconds)}</strong></span>
+                ) : null}
                 {todaySummary.mixedFocusedSeconds ? (
-                  <span>Mixed: <strong className="text-amber-300 font-mono">{formatTimeHoursMins(todaySummary.mixedFocusedSeconds)}</strong></span>
+                  <span>Mixed: <strong className="text-indigo-300 font-mono">{formatTimeHoursMins(todaySummary.mixedFocusedSeconds)}</strong></span>
                 ) : null}
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5 flex justify-between">
@@ -331,6 +334,48 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                     }}
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Distraction & Activity Breakdown Panel */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <span>Granular Distraction & Cognitive Activity Intelligence</span>
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">Smartphone Use</span>
+                <span className="text-lg font-bold font-mono text-rose-400">
+                  {formatTimeHoursMins(todaySummary.phoneDistractedSeconds || 0)}
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Phone detection</span>
+              </div>
+
+              <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">Conversation / Speech</span>
+                <span className="text-lg font-bold font-mono text-amber-400">
+                  {formatTimeHoursMins(todaySummary.conversationSeconds || 0)}
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Distracting speech</span>
+              </div>
+
+              <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">Drowsy / Sleep</span>
+                <span className="text-lg font-bold font-mono text-purple-400">
+                  {formatTimeHoursMins(todaySummary.possibleSleepSeconds || 0)}
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Deep head droop + closed eyes</span>
+              </div>
+
+              <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">Absence / Away</span>
+                <span className="text-lg font-bold font-mono text-zinc-300">
+                  {formatTimeHoursMins(todaySummary.awaySeconds || 0)}
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Left desk workspace</span>
               </div>
             </div>
           </div>

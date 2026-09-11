@@ -4,20 +4,64 @@ export type FocusState =
   | 'FOCUSED_SCREEN' 
   | 'FOCUSED_PAPER' 
   | 'FOCUSED_MIXED' 
+  | 'THINKING'
   | 'UNCERTAIN' 
   | 'WARNING' 
+  | 'PHONE_USE'
+  | 'CONVERSATION'
+  | 'POSSIBLE_SLEEP'
   | 'DISTRACTED' 
   | 'AWAY' 
   | 'BREAK' 
   | 'PAUSED' 
-  | 'COMPLETED'
+  | 'COMPLETED' 
   | 'UNVERIFIED';
 
 export const isFocusedState = (state: FocusState): boolean =>
   state === 'FOCUSED' ||
   state === 'FOCUSED_SCREEN' ||
   state === 'FOCUSED_PAPER' ||
-  state === 'FOCUSED_MIXED';
+  state === 'FOCUSED_MIXED' ||
+  state === 'THINKING';
+
+export type ActivityType =
+  | 'SCREEN_READING'
+  | 'SCREEN_TYPING'
+  | 'PAPER_READING'
+  | 'PAPER_WRITING'
+  | 'PYQ_SOLVING'
+  | 'CALCULATING'
+  | 'THINKING'
+  | 'NOTE_TAKING'
+  | 'NORMAL_MOVEMENT'
+  | 'DRINKING'
+  | 'PHONE_USE'
+  | 'CONVERSATION'
+  | 'AWAY'
+  | 'POSSIBLE_SLEEP'
+  | 'BREAK'
+  | 'UNKNOWN';
+
+export type FaceVisibilityCategory = 'HIGH_VISIBILITY' | 'MEDIUM_VISIBILITY' | 'LOW_VISIBILITY';
+
+export interface FocusConfidenceVector {
+  screenStudyConfidence: number; // 0 to 1
+  paperStudyConfidence: number; // 0 to 1
+  thinkingConfidence: number; // 0 to 1
+  phoneConfidence: number; // 0 to 1
+  conversationConfidence: number; // 0 to 1
+  sleepConfidence: number; // 0 to 1
+  awayConfidence: number; // 0 to 1
+  overallFocusConfidence: number; // 0 to 1
+}
+
+export interface StudyZoneBounds {
+  minX: number; // 0 to 100%
+  maxX: number; // 0 to 100%
+  minY: number; // 0 to 100%
+  maxY: number; // 0 to 100%
+  baselineCentroid: { x: number; y: number };
+}
 
 export type FocusMode = 'Deep Focus' | 'Normal Study' | 'Revision' | 'PYQ Practice' | 'Mock Test' | 'Custom';
 
@@ -28,6 +72,7 @@ export type SensitivityPreset = 'relaxed' | 'balanced' | 'strict';
 export interface VisionData {
   facePresent: boolean;
   confidence: number;
+  faceVisibilityCategory?: FaceVisibilityCategory;
   headYaw: number; // degrees: negative = left, positive = right
   headPitch: number; // degrees: negative = down, positive = up
   headRoll: number;
@@ -38,6 +83,9 @@ export interface VisionData {
   bodyPostureStable: boolean; // Seated stably in front of desk
   deskActivityScore: number; // 0 to 1
   isLookingDown: boolean; // Natural desk / notebook focus angle
+  inStudyZone?: boolean;
+  mouthMovementScore?: number; // 0 to 1
+  phoneDetectedScore?: number; // 0 to 1
   lightingLevel?: 'dark' | 'low' | 'normal' | 'bright';
   lightingScore?: number; // 0 to 1
   faceCount?: number;
@@ -65,22 +113,41 @@ export interface CalibrationProfile {
   lightingBaseline: number; // 0-255
   faceBoundingBoxRatio: number; // relative size of user face
   torsoCentroid: { x: number; y: number };
+  phoneBaselineScore?: number;
+  studyZone?: StudyZoneBounds;
   tolerances: {
     yawTolerance: number;
     pitchTolerance: number;
     awayToleranceSeconds: number;
+    phoneGraceSeconds?: number;
+    conversationGraceSeconds?: number;
+    sleepGraceSeconds?: number;
   };
+}
+
+export interface ActivityEventLog {
+  id: string;
+  timestamp: number;
+  activity: ActivityType;
+  durationSeconds: number;
+  details?: string;
 }
 
 export interface TemporalObservation {
   timestamp: number;
   focusScore: number;
+  activity?: ActivityType;
+  confidenceVector?: FocusConfidenceVector;
   facePresent: boolean;
+  faceVisibility?: FaceVisibilityCategory;
   headYaw: number;
   headPitch: number;
   gazeScore: number;
   handActivity: boolean;
   bodyPostureStable: boolean;
+  phoneScore?: number;
+  conversationScore?: number;
+  sleepScore?: number;
   keyboardActive: boolean;
   mouseActive: boolean;
   idleSeconds: number;
@@ -92,7 +159,9 @@ export interface StateTransitionLog {
   timestamp: number;
   oldState: FocusState;
   newState: FocusState;
+  activity?: ActivityType;
   focusScore: number;
+  confidenceVector?: FocusConfidenceVector;
   reason: string;
 }
 
@@ -202,9 +271,13 @@ export interface FocusSession {
   screenFocusedSeconds: number;
   paperFocusedSeconds: number;
   mixedFocusedSeconds?: number;
+  thinkingSeconds?: number;
   warningSeconds: number;
   uncertainSeconds?: number;
   distractedSeconds: number;
+  phoneDistractedSeconds?: number;
+  conversationSeconds?: number;
+  possibleSleepSeconds?: number;
   awaySeconds: number;
   breakSeconds: number;
   unverifiedSeconds?: number;
@@ -217,6 +290,7 @@ export interface FocusSession {
   calendarEventId?: string;
   notes?: string;
   transitionLogs?: StateTransitionLog[];
+  activityEvents?: ActivityEventLog[];
 }
 
 export interface FocusTimelineEvent {
@@ -231,6 +305,7 @@ export interface FocusTimelineEvent {
   eyeOpen: boolean;
   activeApp: string;
   handActivity?: boolean;
+  activity?: ActivityType;
 }
 
 export interface DailySummary {
@@ -240,8 +315,12 @@ export interface DailySummary {
   screenFocusedSeconds: number;
   paperFocusedSeconds: number;
   mixedFocusedSeconds?: number;
+  thinkingSeconds?: number;
   uncertainSeconds?: number;
   distractedSeconds: number;
+  phoneDistractedSeconds?: number;
+  conversationSeconds?: number;
+  possibleSleepSeconds?: number;
   awaySeconds: number;
   breakSeconds: number;
   unverifiedSeconds?: number;

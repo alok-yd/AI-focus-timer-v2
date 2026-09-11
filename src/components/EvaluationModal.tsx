@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { EvaluationMetrics } from '../types';
 import { EvaluationEngine } from '../services/evaluationEngine';
 import { StorageService } from '../services/storage';
@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Award,
   Zap,
-  Check
+  Check,
+  Filter
 } from 'lucide-react';
 
 interface EvaluationModalProps {
@@ -25,6 +26,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
 }) => {
   const [metrics, setMetrics] = useState<EvaluationMetrics | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('All');
 
   useEffect(() => {
     if (isOpen) {
@@ -142,39 +144,67 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
             </div>
           )}
 
-          {/* Scenario Breakdown Table */}
+          {/* Scenario Breakdown Table with Category Tabs */}
           {metrics && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs font-bold text-zinc-200">
                 <span>Scenario Validation Tests ({metrics.passedScenarios}/{metrics.totalScenarios} Passed)</span>
                 <span className="text-[10px] text-zinc-500 font-normal">Updated {new Date(metrics.timestamp).toLocaleTimeString()}</span>
               </div>
 
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-                {metrics.scenarioResults.map((sc, i) => (
-                  <div
-                    key={i}
-                    className="p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      {sc.passed ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                      )}
-                      <div>
-                        <div className="font-semibold text-zinc-200">{sc.name}</div>
-                        <div className="text-[10px] text-zinc-500">{sc.category} • {sc.details}</div>
-                      </div>
-                    </div>
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
+                {['All', 'Paper / PYQ Study', 'Screen Study', 'Normal Study Movement', 'Distraction & Threats', 'Environmental & Hardware'].map((cat) => {
+                  const count = cat === 'All' 
+                    ? metrics.scenarioResults.length 
+                    : metrics.scenarioResults.filter(s => s.category === cat).length;
+                  const isActive = activeCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1 ${
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                      }`}
+                    >
+                      <span>{cat}</span>
+                      <span className={`text-[9px] font-mono px-1 rounded ${isActive ? 'bg-indigo-700/80 text-white' : 'bg-zinc-850 text-zinc-400'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
-                      sc.passed ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                    }`}>
-                      {sc.actualState}
-                    </span>
-                  </div>
-                ))}
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {metrics.scenarioResults
+                  .filter(sc => activeCategory === 'All' || sc.category === activeCategory)
+                  .map((sc, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        {sc.passed ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        )}
+                        <div>
+                          <div className="font-semibold text-zinc-200">{sc.name}</div>
+                          <div className="text-[10px] text-zinc-500">{sc.category} • {sc.details}</div>
+                        </div>
+                      </div>
+
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                        sc.passed ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                      }`}>
+                        {sc.actualState}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
